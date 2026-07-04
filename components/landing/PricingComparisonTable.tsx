@@ -11,6 +11,8 @@ export interface PricingTier {
     recommended?: boolean;
     ctaLabel: string;
     ctaHref: string;
+    /** Optional "Idéal pour…" persona line rendered above the feature list. */
+    idealFor?: string;
     /** Optional pre-encoded WhatsApp deep link — renders a secondary CTA under the primary. */
     whatsappHref?: string;
 }
@@ -111,6 +113,14 @@ function PricingComparisonTable({
                                 </p>
                             )}
                         </div>
+
+                        {/* Ideal-for persona line */}
+                        {tier.idealFor && (
+                            <p className="mt-4 sm:mt-5 rounded-2xl bg-cream-50 px-4 py-3 text-xs sm:text-sm text-slate-600 leading-relaxed ring-1 ring-cream-200 text-pretty">
+                                <span className="font-semibold text-slate-800">Idéal pour · </span>
+                                {tier.idealFor}
+                            </p>
+                        )}
 
                         {/* Features */}
                         <ul className="mt-5 sm:mt-6 flex-1 space-y-3">

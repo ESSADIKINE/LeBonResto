@@ -34,9 +34,9 @@ Set these in **Vercel dashboard → Project → Settings → Environment Variabl
 | `NEXT_PUBLIC_CLARITY_ID` | Production | Microsoft Clarity project ID for session replay. Leave empty in Preview. | `abcdefg123` |
 | `LEADS_WEBHOOK_URL` | Production, Preview | Slack / Zapier / n8n webhook that receives new lead submissions. **Secret.** | `https://hooks.slack.com/services/…` |
 | `LEADS_EMAIL_TO` | Production, Preview | Recipient for internal lead notifications. Defaults to `anass.essadikine2@gmail.com` if unset. | `anass.essadikine2@gmail.com` |
-| `BREVO_API_KEY` | Production, Preview | Brevo (Sendinblue) v3 API key. Enables auto-reply to sender + internal notification. **Secret.** | `xkeysib-…` |
-| `BREVO_SENDER_EMAIL` | Production, Preview | Verified sender identity on Brevo. Defaults to `le.bon.restau@gmail.com`. | `le.bon.restau@gmail.com` |
-| `BREVO_SENDER_NAME` | Production, Preview | Display name shown to recipients. Defaults to `Le Bon Resto`. | `Le Bon Resto` |
+| `BREVO_API_KEY` | Production, Preview | Brevo (Sendinblue) v3 API key. Same tenant as `lebonresto-backend`. **Secret.** | `xkeysib-…` |
+| `BREVO_FROM` | Production, Preview | Sender identity in `Name <email>` format. Same var name as `lebonresto-backend`. | `LeBonResto <le.bon.restau@gmail.com>` |
+| `BREVO_REPLY_TO` | Production, Preview | Default Reply-To address when a route doesn't override it. Same var name as `lebonresto-backend`. | `le.bon.restau@gmail.com` |
 | `NEXT_TELEMETRY_DISABLED` | All | Disable Next.js telemetry on Vercel builds. | `1` |
 
 > **Note.** Per-IP rate limiting on `/api/leads/*` is not yet wired. Add `@upstash/ratelimit` (or an in-memory bucket keyed by `x-forwarded-for`) inside each route handler if abuse becomes a concern — Brevo API calls fire on every valid POST.

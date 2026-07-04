@@ -1,7 +1,7 @@
 const BREVO_ENDPOINT = 'https://api.brevo.com/v3/smtp/email';
 
-const DEFAULT_SENDER_EMAIL = 'le.bon.restau@gmail.com';
-const DEFAULT_SENDER_NAME = 'Le Bon Resto';
+const DEFAULT_FROM = 'LeBonResto <le.bon.restau@gmail.com>';
+const DEFAULT_REPLY_TO = 'le.bon.restau@gmail.com';
 const DEFAULT_NOTIFY_TO = 'anass.essadikine2@gmail.com';
 
 type SendArgs = {
@@ -14,6 +14,14 @@ type SendArgs = {
 };
 
 export type BrevoResult = { ok: true } | { ok: false; error: string };
+
+// Parses `"Name" <email>` or `Name <email>` or a bare email into { name, email }.
+// Same format as lebonresto-backend `BREVO_FROM`, so both projects share the var.
+function parseFromAddress(raw: string): { name?: string; email: string } {
+    const match = raw.match(/^\s*"?([^"<]+?)"?\s*<([^>]+)>\s*$/);
+    if (match) return { name: match[1].trim(), email: match[2].trim() };
+    return { email: raw.trim() };
+}
 
 export async function sendBrevoEmail({
     to,
@@ -29,8 +37,9 @@ export async function sendBrevoEmail({
         return { ok: false, error: 'BREVO_API_KEY not configured' };
     }
 
-    const senderEmail = process.env.BREVO_SENDER_EMAIL || DEFAULT_SENDER_EMAIL;
-    const defaultName = process.env.BREVO_SENDER_NAME || DEFAULT_SENDER_NAME;
+    const from = parseFromAddress(process.env.BREVO_FROM || DEFAULT_FROM);
+    const defaultReplyTo = process.env.BREVO_REPLY_TO || DEFAULT_REPLY_TO;
+    const effectiveReplyTo = replyTo || defaultReplyTo;
 
     try {
         const res = await fetch(BREVO_ENDPOINT, {
@@ -42,12 +51,12 @@ export async function sendBrevoEmail({
                 'User-Agent': 'lebonresto-marketing/1.0',
             },
             body: JSON.stringify({
-                sender: { email: senderEmail, name: senderName || defaultName },
+                sender: { email: from.email, name: senderName || from.name || 'Le Bon Resto' },
                 to: [{ email: to }],
                 subject,
                 htmlContent: html,
                 textContent: text,
-                replyTo: replyTo ? { email: replyTo } : undefined,
+                replyTo: effectiveReplyTo ? { email: effectiveReplyTo } : undefined,
             }),
         });
 

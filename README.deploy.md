@@ -30,8 +30,8 @@ Set these in **Vercel dashboard → Project → Settings → Environment Variabl
 |---|---|---|---|
 | `NEXT_PUBLIC_SITE_URL` | Optional | Reserved for future use — canonical URL is currently hardcoded to `https://lebonresto.ma` in `app/layout.tsx`, `app/sitemap.ts`, `app/robots.ts`. | `https://business.lebonresto.ma` |
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | Optional | Reserved for future use — WhatsApp Business number is currently hardcoded to `212644440525` in `wa.me/*` links across the site. | `212644440525` |
-| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Production | Plausible domain identifier for `Analytics.tsx`. Leave empty in Preview. | `business.lebonresto.ma` |
-| `NEXT_PUBLIC_CLARITY_ID` | Production | Microsoft Clarity project ID for session replay. Leave empty in Preview. | `abcdefg123` |
+| `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` | Optional | Plausible domain identifier for `Analytics.tsx`. Leave empty to skip loading Plausible entirely — no cookie, no request. Add later if/when you sign up. | `business.lebonresto.ma` |
+| `NEXT_PUBLIC_CLARITY_ID` | Optional (Production) | Microsoft Clarity project ID for session replay + heatmaps. Leave empty in Preview to avoid recording localhost/preview sessions. | `xh2ryb8blh` |
 | `LEADS_WEBHOOK_URL` | Production, Preview | Slack / Zapier / n8n webhook that receives new lead submissions. **Secret.** | `https://hooks.slack.com/services/…` |
 | `LEADS_EMAIL_TO` | Production, Preview | Recipient for internal lead notifications. Defaults to `anass.essadikine2@gmail.com` if unset. | `anass.essadikine2@gmail.com` |
 | `BREVO_API_KEY` | Production, Preview | Brevo (Sendinblue) v3 API key. Same tenant as `lebonresto-backend`. **Secret.** | `xkeysib-…` |

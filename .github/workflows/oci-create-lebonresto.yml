@@ -1,0 +1,78 @@
+name: Create lebonresto instance (Oracle Always Free)
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # every 30 minutes
+  workflow_dispatch:          # "Run workflow" button for a manual try
+
+permissions:
+  actions: write              # lets the job disable itself once the instance exists
+
+concurrency:
+  group: oci-create-lebonresto
+  cancel-in-progress: false
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check Oracle secrets
+        id: secrets
+        env:
+          A: ${{ secrets.OCI_TENANCY_OCID }}
+          B: ${{ secrets.OCI_USER_OCID }}
+          C: ${{ secrets.OCI_FINGERPRINT }}
+          D: ${{ secrets.OCI_PRIVATE_KEY }}
+          E: ${{ secrets.OCI_REGION }}
+          F: ${{ secrets.SSH_PUBLIC_KEY }}
+        run: |
+          if [ -n "$A" ] && [ -n "$B" ] && [ -n "$C" ] && [ -n "$D" ] && [ -n "$E" ] && [ -n "$F" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "### ⚠️ Oracle secrets not set yet — see OCI-SETUP.md. Skipping this run." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secrets.outputs.ready == 'true'
+
+      - name: Install OCI CLI
+        if: steps.secrets.outputs.ready == 'true'
+        run: pip install --quiet oci-cli
+
+      - name: Configure OCI CLI
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.oci
+          printf '%s\n' "$OCI_PRIVATE_KEY" > ~/.oci/oci_api_key.pem
+          chmod 600 ~/.oci/oci_api_key.pem
+          cat > ~/.oci/config <<EOF
+          [DEFAULT]
+          user=${{ secrets.OCI_USER_OCID }}
+          fingerprint=${{ secrets.OCI_FINGERPRINT }}
+          tenancy=${{ secrets.OCI_TENANCY_OCID }}
+          region=${{ secrets.OCI_REGION }}
+          key_file=~/.oci/oci_api_key.pem
+          EOF
+          chmod 600 ~/.oci/config
+          oci setup repair-file-permissions --file ~/.oci/config
+          oci setup repair-file-permissions --file ~/.oci/oci_api_key.pem
+
+      - name: Create instance (retries on "Out of capacity")
+        id: create
+        if: steps.secrets.outputs.ready == 'true'
+        env:
+          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
+          OCI_REGION: ${{ secrets.OCI_REGION }}
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+          OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING: "True"
+        run: bash scripts/oci-create-lebonresto.sh
+
+      - name: Stop retrying once the instance exists
+        if: steps.create.outputs.created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow disable "${{ github.workflow }}" --repo "${{ github.repository }}"

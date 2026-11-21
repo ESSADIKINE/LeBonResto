@@ -11,7 +11,7 @@
 #
 # Optional:
 #   INSTANCE_NAME (lebonresto)  OCPUS (2)  MEMORY_GB (12)  BOOT_GB (150)
-#   MAX_MINUTES (50)  WAIT_SECONDS (60)
+#   MAX_MINUTES (50)  WAIT_SECONDS (150)
 set -uo pipefail
 
 NAME="${INSTANCE_NAME:-lebonresto}"
@@ -19,7 +19,7 @@ OCPUS="${OCPUS:-2}"
 MEMORY_GB="${MEMORY_GB:-12}"
 BOOT_GB="${BOOT_GB:-150}"
 MAX_MINUTES="${MAX_MINUTES:-50}"
-WAIT_SECONDS="${WAIT_SECONDS:-60}"
+WAIT_SECONDS="${WAIT_SECONDS:-150}"
 SHAPE="VM.Standard.A1.Flex"
 COMP="${OCI_TENANCY_OCID:?OCI_TENANCY_OCID is missing}"
 export OCI_CLI_REGION="${OCI_REGION:?OCI_REGION is missing}"
@@ -154,7 +154,7 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
       log "Out of capacity in $ad."
     elif echo "$result" | grep -qiE "LimitExceeded|TooManyRequests|Too many requests"; then
       log "Oracle rate limit, waiting longer."
-      pause=$((WAIT_SECONDS * 3))
+      pause=$((WAIT_SECONDS * 2))
     elif echo "$result" | grep -qiE "timed out|timeout|Connection|ServiceUnavailable|503|502"; then
       log "Temporary network/service error, retrying."
     else
@@ -165,7 +165,7 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
   done
 done
 
-log "Still no capacity after $attempt attempts. The next scheduled run will try again."
+log "Still no capacity after $attempt attempts. The next run will try again."
 out created false
-[ -n "${GITHUB_STEP_SUMMARY:-}" ] && echo "### ⏳ No Ampere capacity yet — will retry on the next run" >> "$GITHUB_STEP_SUMMARY"
+[ -n "${GITHUB_STEP_SUMMARY:-}" ] && echo "### ⏳ No Ampere capacity yet — the next run starts automatically" >> "$GITHUB_STEP_SUMMARY"
 exit 0

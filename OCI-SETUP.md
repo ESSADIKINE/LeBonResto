@@ -1,7 +1,7 @@
 # Auto-create the lebonresto server on Oracle Cloud (Always Free)
 
 Oracle often answers **"Out of capacity"** for free Ampere servers in Casablanca.
-This GitHub Action tries again **every 30 minutes**. As soon as a place is free it:
+This GitHub Action starts every 30 minutes (GitHub may start it later) and each run keeps trying for **about 50 minutes**. As soon as a place is free it:
 
 - creates the `lebonresto` instance: Ampere A1, 2 OCPU, 12 GB RAM, 150 GB disk, Ubuntu 24.04 (all Always Free)
 - creates the network if needed (`lebonresto-vcn`, public subnet, internet gateway)

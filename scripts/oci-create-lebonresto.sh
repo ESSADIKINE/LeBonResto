@@ -11,15 +11,15 @@
 #
 # Optional:
 #   INSTANCE_NAME (lebonresto)  OCPUS (2)  MEMORY_GB (12)  BOOT_GB (150)
-#   ATTEMPTS (3)  WAIT_SECONDS (30)
+#   MAX_MINUTES (50)  WAIT_SECONDS (60)
 set -uo pipefail
 
 NAME="${INSTANCE_NAME:-lebonresto}"
 OCPUS="${OCPUS:-2}"
 MEMORY_GB="${MEMORY_GB:-12}"
 BOOT_GB="${BOOT_GB:-150}"
-ATTEMPTS="${ATTEMPTS:-3}"
-WAIT_SECONDS="${WAIT_SECONDS:-30}"
+MAX_MINUTES="${MAX_MINUTES:-50}"
+WAIT_SECONDS="${WAIT_SECONDS:-60}"
 SHAPE="VM.Standard.A1.Flex"
 COMP="${OCI_TENANCY_OCID:?OCI_TENANCY_OCID is missing}"
 export OCI_CLI_REGION="${OCI_REGION:?OCI_REGION is missing}"
@@ -117,11 +117,25 @@ runcmd:
   - netfilter-persistent save
 EOF
 
-# ---------- 5. Launch, retrying on "Out of capacity" ----------
-for attempt in $(seq 1 "$ATTEMPTS"); do
+# ---------- 5. Launch, retrying on "Out of capacity" for up to MAX_MINUTES ----------
+deadline=$(( $(date +%s) + MAX_MINUTES * 60 ))
+attempt=0
+while [ "$(date +%s)" -lt "$deadline" ]; do
   for ad in $ads; do
-    log "Attempt $attempt/$ATTEMPTS in $ad ($OCPUS OCPU, $MEMORY_GB GB RAM, $BOOT_GB GB disk)"
-    if result=$(oci compute instance launch --compartment-id "$COMP" \
+    attempt=$((attempt + 1))
+    # A previous attempt may have succeeded late: never create a second one.
+    again=$(oci compute instance list --compartment-id "$COMP" --display-name "$NAME" \
+      --query 'data[?"lifecycle-state"!=`TERMINATED` && "lifecycle-state"!=`TERMINATING`] | [0].id' \
+      --raw-output 2>/dev/null || true)
+    if [ -n "$again" ] && [ "$again" != "null" ]; then
+      log "Instance $NAME now exists ($again)."
+      oci compute instance get --instance-id "$again" --wait-for-state RUNNING \
+        --max-wait-seconds 900 >/dev/null 2>&1 || true
+      out created true; print_ip "$again"; exit 0
+    fi
+    left=$(( (deadline - $(date +%s)) / 60 ))
+    log "Attempt $attempt in $ad ($OCPUS OCPU, $MEMORY_GB GB RAM, $BOOT_GB GB disk) - ${left} min left in this run"
+    if result=$(oci --no-retry compute instance launch --compartment-id "$COMP" \
         --availability-domain "$ad" --display-name "$NAME" \
         --shape "$SHAPE" --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEMORY_GB}" \
         --image-id "$image" --boot-volume-size-in-gbs "$BOOT_GB" \
@@ -135,18 +149,23 @@ for attempt in $(seq 1 "$ATTEMPTS"); do
       print_ip "$result"
       exit 0
     fi
+    pause="$WAIT_SECONDS"
     if echo "$result" | grep -qiE "out of (host )?capacity|OutOfCapacity|InternalError"; then
       log "Out of capacity in $ad."
-    elif echo "$result" | grep -qiE "LimitExceeded|TooManyRequests"; then
-      log "Limit / rate error: $(echo "$result" | grep -m1 -iE '"message"' || echo "$result" | tail -1)"
+    elif echo "$result" | grep -qiE "LimitExceeded|TooManyRequests|Too many requests"; then
+      log "Oracle rate limit, waiting longer."
+      pause=$((WAIT_SECONDS * 3))
+    elif echo "$result" | grep -qiE "timed out|timeout|Connection|ServiceUnavailable|503|502"; then
+      log "Temporary network/service error, retrying."
     else
       log "Unexpected error, stopping:"; echo "$result"; exit 1
     fi
+    [ $(( $(date +%s) + pause )) -lt "$deadline" ] || break 2
+    sleep "$pause"
   done
-  [ "$attempt" -lt "$ATTEMPTS" ] && sleep "$WAIT_SECONDS"
 done
 
-log "Still no capacity. The next scheduled run will try again."
+log "Still no capacity after $attempt attempts. The next scheduled run will try again."
 out created false
 [ -n "${GITHUB_STEP_SUMMARY:-}" ] && echo "### ⏳ No Ampere capacity yet — will retry on the next run" >> "$GITHUB_STEP_SUMMARY"
 exit 0

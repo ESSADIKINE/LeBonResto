@@ -2,7 +2,7 @@ name: Create lebonresto instance (Oracle Always Free)
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # every 30 minutes
+    - cron: "*/30 * * * *"   # GitHub may start it later or less often; each run keeps trying ~50 min
   workflow_dispatch:          # "Run workflow" button for a manual try
 
 permissions:
@@ -15,7 +15,7 @@ concurrency:
 jobs:
   create:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 75
     steps:
       - name: Check Oracle secrets
         id: secrets

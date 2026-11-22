@@ -1,6 +1,7 @@
 # Retries creating a FREE Oracle Cloud Ampere A1 server (2 CPU / 12 GB, Ubuntu 24.04)
 # named "lebonresto" in Casablanca until Oracle has capacity. Stops trying once the server exists.
-# Same logic as ESSADIKINE/oracle-a1-retry (Paris).
+# Same logic as ESSADIKINE/oracle-a1-retry (Paris), plus: when a run finds no capacity
+# it starts the next run itself, so it keeps trying even when GitHub delays the schedule.
 #
 # Uses the GitHub secrets already set in this repo:
 #   OCI_USER_OCID, OCI_FINGERPRINT, OCI_TENANCY_OCID, OCI_REGION, OCI_PRIVATE_KEY, SSH_PUBLIC_KEY
@@ -92,7 +93,7 @@ jobs:
             fi
             if echo "$OUT" | grep -qi 'capacity'; then echo "Attempt $i: out of capacity"
             elif echo "$OUT" | grep -qi 'TooManyRequests'; then echo "Attempt $i: too many requests"
-            else echo "Attempt $i: other error:"; echo "$OUT" | head -20; fi
+            else echo "Attempt $i: other error:"; echo "$OUT" | head -20; echo "other_error=true" >> "$GITHUB_OUTPUT"; fi
             [ $i -lt 3 ] && sleep 120
           done
           echo "No capacity this time. Will retry on the next scheduled run."
@@ -119,3 +120,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: gh workflow disable oci-create-lebonresto.yml
+
+      - name: No capacity - start the next run right away
+        if: steps.try.outputs.created != 'true' && steps.try.outputs.exists != 'true' && steps.try.outputs.other_error != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh workflow run oci-create-lebonresto.yml --ref main

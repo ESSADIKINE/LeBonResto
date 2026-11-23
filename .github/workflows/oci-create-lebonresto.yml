@@ -76,6 +76,10 @@ jobs:
           EOF
           sed -i 's/^ *//' init.sh
 
+          # Wait 2 minutes first: the previous run's last try was just before,
+          # and Oracle answers "Too many requests" if we ask again too soon.
+          sleep 120
+
           # 3 attempts per run, 2 minutes apart
           for i in 1 2 3; do
             if OUT=$(oci --no-retry compute instance launch --availability-domain "$AD" -c "$C" \

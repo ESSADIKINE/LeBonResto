@@ -93,6 +93,7 @@ jobs:
             fi
             if echo "$OUT" | grep -qi 'capacity'; then echo "Attempt $i: out of capacity"
             elif echo "$OUT" | grep -qi 'TooManyRequests'; then echo "Attempt $i: too many requests"
+            elif echo "$OUT" | grep -qiE 'timed out|timeout|ServiceUnavailable|Connection (reset|aborted|refused)'; then echo "Attempt $i: network timeout (the next run checks first that no server was created)"
             else echo "Attempt $i: other error:"; echo "$OUT" | head -20; echo "other_error=true" >> "$GITHUB_OUTPUT"; fi
             [ $i -lt 3 ] && sleep 120
           done

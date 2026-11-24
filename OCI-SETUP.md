@@ -5,7 +5,7 @@ Workflow: `.github/workflows/oci-create-lebonresto.yml` (same logic as `ESSADIKI
 Oracle often answers **"Out of capacity"** for free Ampere servers in Casablanca.
 Each run makes 3 tries, 2 minutes apart. If there is no capacity it starts the next run itself (nonstop); the 10-minute schedule is a backup. As soon as a place is free it:
 
-- creates the `lebonresto` server: Ampere A1, 2 OCPU, 12 GB RAM, 150 GB disk, Ubuntu 24.04 (all Always Free)
+- creates the `lebonresto` server: Ampere A1, 1 OCPU, 6 GB RAM, 150 GB disk (can be resized to 2 OCPU / 12 GB later for free), Ubuntu 24.04 (all Always Free)
 - in the existing `lebonresto-public-subnet` (network already created), with a **public IP**, ports 80/443 open
 - **opens a GitHub issue "Oracle server created!"** (GitHub emails you), then **turns itself off**
 

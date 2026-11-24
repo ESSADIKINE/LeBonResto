@@ -1,4 +1,4 @@
-# Retries creating a FREE Oracle Cloud Ampere A1 server (2 CPU / 12 GB, Ubuntu 24.04)
+# Retries creating a FREE Oracle Cloud Ampere A1 server (1 CPU / 6 GB, Ubuntu 24.04)
 # named "lebonresto" in Casablanca until Oracle has capacity. Stops trying once the server exists.
 # Same logic as ESSADIKINE/oracle-a1-retry (Paris), plus: when a run finds no capacity
 # it starts the next run itself, so it keeps trying even when GitHub delays the schedule.
@@ -83,7 +83,7 @@ jobs:
           # 3 attempts per run, 2 minutes apart
           for i in 1 2 3; do
             if OUT=$(oci --no-retry compute instance launch --availability-domain "$AD" -c "$C" \
-                 --shape VM.Standard.A1.Flex --shape-config '{"ocpus":2,"memoryInGBs":12}' \
+                 --shape VM.Standard.A1.Flex --shape-config '{"ocpus":1,"memoryInGBs":6}' \
                  --image-id "$IMG" --subnet-id "$SUBNET" --assign-public-ip true \
                  --boot-volume-size-in-gbs 150 \
                  --display-name lebonresto --ssh-authorized-keys-file key.pub \
@@ -112,7 +112,7 @@ jobs:
         run: |
           gh issue create --assignee "${{ github.repository_owner }}" \
             --title "Oracle server created!" \
-            --body "@${{ github.repository_owner }} Your free Oracle Ampere A1 server (2 CPU / 12 GB, 150 GB disk, Ubuntu 24.04) named **lebonresto** is being created in Casablanca.
+            --body "@${{ github.repository_owner }} Your free Oracle Ampere A1 server (1 CPU / 6 GB, 150 GB disk, Ubuntu 24.04) named **lebonresto** is being created in Casablanca.
 
           Instance ID: \`$INSTANCE_ID\`
 

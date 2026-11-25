@@ -131,4 +131,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh workflow run oci-create-lebonresto.yml --ref main
+        run: |
+          # GitHub's API sometimes answers HTTP 500: retry so the chain never stops
+          for i in 1 2 3 4 5 6; do
+            gh workflow run oci-create-lebonresto.yml --ref main && exit 0
+            echo "Could not start the next run (try $i), retrying in 30 s"
+            sleep 30
+          done
+          exit 1
